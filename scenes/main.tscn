@@ -1,8 +1,9 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/platform.tscn" id="3_platform"]
+[ext_resource type="Script" path="res://scripts/cavern.gd" id="4_cavern"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.27, 0.27, 0.34, 1)
@@ -20,22 +21,6 @@ ambient_light_source = 2
 ambient_light_energy = 1.1
 tonemap_mode = 2
 
-[sub_resource type="BoxMesh" id="BoxMesh_NS"]
-size = Vector3(35, 300, 5)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_NS"]
-size = Vector3(35, 300, 5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_EW"]
-size = Vector3(5, 300, 25)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_EW"]
-size = Vector3(5, 300, 25)
-
-[sub_resource type="StandardMaterial3D" id="WallMat"]
-albedo_color = Color(0.18, 0.16, 0.2, 1)
-roughness = 0.95
-
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
 
@@ -47,47 +32,8 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 100, 0)
 light_energy = 1.4
 shadow_enabled = true
 
-[node name="Walls" type="Node3D" parent="."]
-
-[node name="WallNorth" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -150, -15)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Walls/WallNorth"]
-mesh = SubResource("BoxMesh_NS")
-surface_material_override/0 = SubResource("WallMat")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/WallNorth"]
-shape = SubResource("BoxShape3D_NS")
-
-[node name="WallSouth" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -150, 15)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Walls/WallSouth"]
-mesh = SubResource("BoxMesh_NS")
-surface_material_override/0 = SubResource("WallMat")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/WallSouth"]
-shape = SubResource("BoxShape3D_NS")
-
-[node name="WallEast" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, -150, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Walls/WallEast"]
-mesh = SubResource("BoxMesh_EW")
-surface_material_override/0 = SubResource("WallMat")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/WallEast"]
-shape = SubResource("BoxShape3D_EW")
-
-[node name="WallWest" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -150, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Walls/WallWest"]
-mesh = SubResource("BoxMesh_EW")
-surface_material_override/0 = SubResource("WallMat")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/WallWest"]
-shape = SubResource("BoxShape3D_EW")
+[node name="Cavern" type="StaticBody3D" parent="."]
+script = ExtResource("4_cavern")
 
 [node name="Platforms" type="Node3D" parent="."]
 
