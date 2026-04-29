@@ -1,13 +1,15 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene format=3 uid="uid://r8f6o8jwux5i"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://bfapiwe4c4chm" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/platform.tscn" id="3_platform"]
-[ext_resource type="Script" path="res://scripts/cavern.gd" id="4_cavern"]
-[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="5_pause"]
-[ext_resource type="AudioStream" path="res://Chasm of Ash.mp3" id="6_music"]
+[ext_resource type="Script" uid="uid://co5vk3olkb0fa" path="res://scripts/cavern.gd" id="4_cavern"]
+[ext_resource type="Script" uid="uid://d30kb4632f23u" path="res://scripts/pause_menu.gd" id="5_pause"]
+[ext_resource type="AudioStream" uid="uid://wkl62ehf58bd" path="res://Chasm of Ash.mp3" id="6_music"]
 [ext_resource type="PackedScene" path="res://scenes/npc.tscn" id="7_npc"]
-[ext_resource type="Script" path="res://scripts/dialogue.gd" id="8_dialogue"]
+[ext_resource type="Script" uid="uid://cv66pbvmyd6tt" path="res://scripts/dialogue.gd" id="8_dialogue"]
+[ext_resource type="Script" uid="uid://dj27vuj1d8tyo" path="res://scripts/surface.gd" id="9_surface"]
+[ext_resource type="Script" uid="uid://brbepem8ji1jr" path="res://scripts/props.gd" id="10_props"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.27, 0.27, 0.34, 1)
@@ -30,67 +32,71 @@ fog_light_color = Color(0.18, 0.2, 0.26, 1)
 fog_light_energy = 0.8
 fog_density = 0.06
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=1816729206]
 script = ExtResource("1_main")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1419432085]
 environment = SubResource("Environment_1")
 
-[node name="Cavern" type="StaticBody3D" parent="."]
+[node name="Cavern" type="StaticBody3D" parent="." unique_id=985143134]
 script = ExtResource("4_cavern")
 height = 16000.0
 torch_count = 60
 
-[node name="Platforms" type="Node3D" parent="."]
+[node name="Surface" type="StaticBody3D" parent="." unique_id=2041001599 groups=["checkpoint"]]
+script = ExtResource("9_surface")
 
-[node name="Start" parent="Platforms" instance=ExtResource("3_platform")]
-transform = Transform3D(10, 0, 0, 0, 1, 0, 0, 0, 10, 0, 9.5, 0)
+[node name="Props" type="Node3D" parent="." unique_id=995733612]
+script = ExtResource("10_props")
 
-[node name="P1" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="Platforms" type="Node3D" parent="." unique_id=295575843]
+
+[node name="P1" parent="Platforms" unique_id=1585099796 instance=ExtResource("3_platform")]
 transform = Transform3D(6, 0, 0, 0, 1, 0, 0, 0, 6, -8, -10, 4)
 
-[node name="P2" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P2" parent="Platforms" unique_id=1355009688 instance=ExtResource("3_platform")]
 transform = Transform3D(6, 0, 0, 0, 1, 0, 0, 0, 6, 8, -22, -3)
 
-[node name="P3" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P3" parent="Platforms" unique_id=757080095 instance=ExtResource("3_platform")]
 transform = Transform3D(5, 0, 0, 0, 1, 0, 0, 0, 5, 0, -36, 8)
 
-[node name="P4" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P4" parent="Platforms" unique_id=88292356 instance=ExtResource("3_platform")]
 transform = Transform3D(5, 0, 0, 0, 1, 0, 0, 0, 5, -9, -52, -6)
 
-[node name="P5" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P5" parent="Platforms" unique_id=268338341 instance=ExtResource("3_platform")]
 transform = Transform3D(5, 0, 0, 0, 1, 0, 0, 0, 5, 7, -70, 7)
 
-[node name="P6" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P6" parent="Platforms" unique_id=27013610 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 5, -7, -88, -8)
 
-[node name="P7" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P7" parent="Platforms" unique_id=488053748 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, 8, -110, 5)
 
-[node name="P8" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P8" parent="Platforms" unique_id=42428930 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, -4, -132, -7)
 
-[node name="P9" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P9" parent="Platforms" unique_id=2134162398 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, 5, -158, 8)
 
-[node name="P10" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P10" parent="Platforms" unique_id=453776493 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, -7, -188, -5)
 
-[node name="P11" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P11" parent="Platforms" unique_id=797836249 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, 6, -220, 6)
 
-[node name="P12" parent="Platforms" instance=ExtResource("3_platform")]
+[node name="P12" parent="Platforms" unique_id=1432669595 instance=ExtResource("3_platform")]
 transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, -3, -255, -7)
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13, 0)
+[node name="Player" parent="." unique_id=1607045904 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 11.5, 145)
 
-[node name="NPC" parent="." instance=ExtResource("7_npc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, -4)
+[node name="NPC" parent="." unique_id=756569391 instance=ExtResource("7_npc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 122)
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=232483017]
 
-[node name="Crosshair" type="Label" parent="HUD"]
+[node name="Crosshair" type="Label" parent="HUD" unique_id=1042385591]
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -99,38 +105,38 @@ offset_left = -10.0
 offset_top = -14.0
 offset_right = 10.0
 offset_bottom = 14.0
-theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 0.9)
+theme_override_font_sizes/font_size = 22
 text = "+"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HealthFrame" type="ColorRect" parent="HUD"]
+[node name="HealthFrame" type="ColorRect" parent="HUD" unique_id=1855078377]
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 280.0
 offset_bottom = 44.0
 color = Color(0, 0, 0, 0.6)
 
-[node name="HealthFill" type="ColorRect" parent="HUD"]
+[node name="HealthFill" type="ColorRect" parent="HUD" unique_id=211324641]
 offset_left = 20.0
 offset_top = 16.0
 offset_right = 276.0
 offset_bottom = 40.0
 color = Color(0.85, 0.2, 0.22, 1)
 
-[node name="HealthLabel" type="Label" parent="HUD"]
+[node name="HealthLabel" type="Label" parent="HUD" unique_id=1227725592]
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 280.0
 offset_bottom = 44.0
-theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
 text = "100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="DepthLabel" type="Label" parent="HUD"]
+[node name="DepthLabel" type="Label" parent="HUD" unique_id=1063056861]
 offset_left = 16.0
 offset_top = 52.0
 offset_right = 400.0
@@ -138,7 +144,7 @@ offset_bottom = 90.0
 theme_override_font_sizes/font_size = 24
 text = "Depth: 0 m"
 
-[node name="HelpLabel" type="Label" parent="HUD"]
+[node name="HelpLabel" type="Label" parent="HUD" unique_id=304742857]
 offset_left = 16.0
 offset_top = 92.0
 offset_right = 760.0
@@ -146,21 +152,23 @@ offset_bottom = 150.0
 theme_override_font_sizes/font_size = 14
 text = "WASD move   Mouse look   Space jump   LMB grapple   Shift reel   E talk   R restart   Esc menu"
 
-[node name="Music" type="AudioStreamPlayer" parent="."]
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=1334666438]
 process_mode = 3
 stream = ExtResource("6_music")
 autoplay = true
 
-[node name="PauseMenu" type="CanvasLayer" parent="."]
+[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=858836229]
 process_mode = 3
 script = ExtResource("5_pause")
 
-[node name="Dim" type="ColorRect" parent="PauseMenu"]
+[node name="Dim" type="ColorRect" parent="PauseMenu" unique_id=142823958]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.6)
 
-[node name="Panel" type="Panel" parent="PauseMenu"]
+[node name="Panel" type="Panel" parent="PauseMenu" unique_id=1240979357]
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -170,46 +178,53 @@ offset_top = -180.0
 offset_right = 180.0
 offset_bottom = 180.0
 
-[node name="VBox" type="VBoxContainer" parent="PauseMenu/Panel"]
+[node name="VBox" type="VBoxContainer" parent="PauseMenu/Panel" unique_id=108617589]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
 offset_top = 24.0
 offset_right = -24.0
 offset_bottom = -24.0
-alignment = 1
 theme_override_constants/separation = 14
+alignment = 1
 
-[node name="Title" type="Label" parent="PauseMenu/Panel/VBox"]
+[node name="Title" type="Label" parent="PauseMenu/Panel/VBox" unique_id=1915153040]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
 text = "Paused"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 32
 
-[node name="VolumeLabel" type="Label" parent="PauseMenu/Panel/VBox"]
+[node name="VolumeLabel" type="Label" parent="PauseMenu/Panel/VBox" unique_id=2130687401]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
 text = "Volume"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 16
 
-[node name="VolumeSlider" type="HSlider" parent="PauseMenu/Panel/VBox"]
+[node name="VolumeSlider" type="HSlider" parent="PauseMenu/Panel/VBox" unique_id=399563004]
 custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
 max_value = 1.0
 step = 0.01
 value = 0.7
 
-[node name="ResumeButton" type="Button" parent="PauseMenu/Panel/VBox"]
+[node name="ResumeButton" type="Button" parent="PauseMenu/Panel/VBox" unique_id=1739171650]
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 text = "Resume"
 
-[node name="ExitButton" type="Button" parent="PauseMenu/Panel/VBox"]
+[node name="ExitButton" type="Button" parent="PauseMenu/Panel/VBox" unique_id=1288172981]
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 text = "Exit Game"
 
-[node name="Dialogue" type="CanvasLayer" parent="."]
+[node name="Dialogue" type="CanvasLayer" parent="." unique_id=1560614050]
 script = ExtResource("8_dialogue")
 player_path = NodePath("../Player")
 npc_path = NodePath("../NPC")
 
-[node name="Prompt" type="Label" parent="Dialogue"]
+[node name="Prompt" type="Label" parent="Dialogue" unique_id=522754654]
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
@@ -218,13 +233,14 @@ offset_left = -120.0
 offset_top = -240.0
 offset_right = 120.0
 offset_bottom = -210.0
-theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 0.95)
+theme_override_font_sizes/font_size = 18
 text = "[E] Talk to wanderer"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Box" type="Panel" parent="Dialogue"]
+[node name="Box" type="Panel" parent="Dialogue" unique_id=1779135880]
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
@@ -234,19 +250,20 @@ offset_top = -190.0
 offset_right = 380.0
 offset_bottom = -40.0
 
-[node name="Text" type="Label" parent="Dialogue/Box"]
+[node name="Text" type="Label" parent="Dialogue/Box" unique_id=1379814883]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 28.0
 offset_top = 24.0
 offset_right = -28.0
 offset_bottom = -36.0
-theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.96, 0.93, 0.86, 1)
+theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
-text = ""
 
-[node name="Hint" type="Label" parent="Dialogue/Box"]
+[node name="Hint" type="Label" parent="Dialogue/Box" unique_id=348958351]
+layout_mode = 0
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -255,8 +272,8 @@ offset_left = -200.0
 offset_top = -28.0
 offset_right = -16.0
 offset_bottom = -8.0
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(1, 1, 1, 0.55)
+theme_override_font_sizes/font_size = 12
 text = "[E] continue   [Q] leave"
 horizontal_alignment = 2
 

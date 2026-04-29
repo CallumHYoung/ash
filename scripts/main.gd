@@ -1,7 +1,7 @@
 extends Node3D
 
 const RESPAWN_DEPTH: float = 16100.0
-const SPAWN_POSITION: Vector3 = Vector3(0, 13, 0)
+const SPAWN_POSITION: Vector3 = Vector3(0, 11.5, 145)
 const HEALTH_FILL_MAX_WIDTH: float = 256.0
 
 @onready var player: CharacterBody3D = $Player
