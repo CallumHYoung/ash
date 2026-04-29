@@ -2,7 +2,7 @@
 extends StaticBody3D
 class_name Cavern
 
-const WALL_TEXTURE: Texture2D = preload("res://rocks.png")
+const WALL_TEXTURE: Texture2D = preload("res://str_stonerubble.bmp")
 
 # Procedural cavern: a vertical tube with rings of vertices, each displaced
 # along its radial direction by 3D simplex noise. Closed top and bottom caps.
@@ -149,7 +149,7 @@ func _build() -> void:
 		# Triplanar projects the texture from world XYZ planes, so it tiles
 		# uniformly across the noise-displaced surface without per-vertex UVs.
 		_material.uv1_triplanar = true
-		_material.uv1_scale = Vector3(0.4, 0.4, 0.4)
+		_material.uv1_scale = Vector3(0.08, 0.08, 0.08)
 		_material.roughness = 0.95
 	# Render both sides — saves us debating winding, and means the wall stays
 	# visible if the player ever pops out the open top and looks back in.
