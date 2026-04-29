@@ -28,5 +28,7 @@ InputSetup="*res://scripts/input_setup.gd"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/resizable=true
+window/size/borderless=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"

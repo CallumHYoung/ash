@@ -10,6 +10,14 @@ const HEALTH_FILL_MAX_WIDTH: float = 256.0
 @onready var health_label: Label = $HUD/HealthLabel
 
 
+func _ready() -> void:
+	# Belt-and-suspenders for project setting propagation: force the window to
+	# be resizable and bordered at runtime, so F5 from the editor honors it
+	# even if the project hasn't been reloaded since the setting was added.
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, false)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+
+
 func _process(_delta: float) -> void:
 	var depth := int(max(0.0, -player.global_position.y))
 	depth_label.text = "Depth: %d m" % depth
