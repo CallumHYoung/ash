@@ -2,6 +2,8 @@
 extends StaticBody3D
 class_name Cavern
 
+const WALL_TEXTURE: Texture2D = preload("res://rocks.png")
+
 # Procedural cavern: a vertical tube with rings of vertices, each displaced
 # along its radial direction by 3D simplex noise. Closed top and bottom caps.
 # Generation is deterministic from `noise_seed`, so the same seed always
@@ -10,7 +12,7 @@ class_name Cavern
 @export var noise_seed: int = 1337: set = _set_noise_seed
 @export var top_y: float = 10.0: set = _set_top_y
 @export var height: float = 320.0: set = _set_height
-@export var base_radius: float = 22.0: set = _set_base_radius
+@export var base_radius: float = 110.0: set = _set_base_radius
 @export var rings: int = 200: set = _set_rings
 @export var radial_segments: int = 64: set = _set_radial_segments
 @export_range(0.0, 10.0, 0.1) var displacement: float = 4.0: set = _set_displacement
@@ -142,7 +144,12 @@ func _build() -> void:
 
 	if _material == null:
 		_material = StandardMaterial3D.new()
-		_material.albedo_color = Color(0.18, 0.16, 0.2, 1)
+		_material.albedo_color = Color(1, 1, 1, 1)
+		_material.albedo_texture = WALL_TEXTURE
+		# Triplanar projects the texture from world XYZ planes, so it tiles
+		# uniformly across the noise-displaced surface without per-vertex UVs.
+		_material.uv1_triplanar = true
+		_material.uv1_scale = Vector3(0.4, 0.4, 0.4)
 		_material.roughness = 0.95
 	# Render both sides — saves us debating winding, and means the wall stays
 	# visible if the player ever pops out the open top and looks back in.
