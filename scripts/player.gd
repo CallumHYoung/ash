@@ -11,8 +11,24 @@ extends CharacterBody3D
 
 const SPEED: float = 6.5
 const JUMP_VELOCITY: float = 7.5
-const AIR_CONTROL: float = 8.0
+const AIR_CONTROL: float = 3.0
+const FALL_GRAVITY_MULT: float = 1.45
+const JUMP_CUT_FACTOR: float = 0.45
+const COYOTE_TIME: float = 0.10
+const JUMP_BUFFER_TIME: float = 0.10
 const MOUSE_SENSITIVITY: float = 0.0022
+
+# Ledge mantle. The forward+head ray finds the wall, then a downward probe
+# looks for a flat top in a window straddling head height; the climb tween
+# rises vertically first and steps onto the ledge.
+const LEDGE_PROBE_FORWARD: float = 0.55
+const LEDGE_PROBE_TOP: float = 1.20
+const LEDGE_PROBE_BOTTOM: float = 0.50
+const LEDGE_CLEARANCE: float = 1.80
+const LEDGE_FORWARD_PUSH: float = 0.50
+const LEDGE_RISE_DURATION: float = 0.45
+const LEDGE_FORWARD_DURATION: float = 0.25
+const CAPSULE_HALF_HEIGHT: float = 0.90
 
 # Impacts below this speed are free; damage scales above it.
 const IMPACT_DAMAGE_THRESHOLD: float = 12.0
@@ -39,6 +55,9 @@ var input_locked: bool = false
 var _yaw: float = 0.0
 var _pitch: float = 0.0
 var _last_checkpoint_floor_id: int = 0
+var _coyote_remaining: float = 0.0
+var _jump_buffer_remaining: float = 0.0
+var _climbing: bool = false
 
 
 func _ready() -> void:
@@ -90,9 +109,14 @@ func unlock_input() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _climbing:
+		# The ledge tween fully owns position and camera while a mantle is in
+		# progress; skipping physics keeps gravity and collisions from fighting
+		# the animation.
+		return
+
 	if input_locked:
-		if not is_on_floor():
-			velocity.y -= gravity * delta
+		_apply_gravity(delta)
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
@@ -101,8 +125,22 @@ func _physics_process(delta: float) -> void:
 
 	_handle_grapple_input()
 
-	if not is_on_floor():
-		velocity.y -= gravity * delta
+	if is_on_floor():
+		_coyote_remaining = COYOTE_TIME
+	else:
+		_coyote_remaining = max(0.0, _coyote_remaining - delta)
+
+	if Input.is_action_just_pressed("jump"):
+		_jump_buffer_remaining = JUMP_BUFFER_TIME
+	else:
+		_jump_buffer_remaining = max(0.0, _jump_buffer_remaining - delta)
+
+	# Variable height: releasing jump while still rising cuts the impulse so
+	# tapped jumps are short and held jumps reach full height.
+	if Input.is_action_just_released("jump") and velocity.y > 0.0:
+		velocity.y *= JUMP_CUT_FACTOR
+
+	_apply_gravity(delta)
 
 	if grapple_attached:
 		_apply_swing(delta)
@@ -123,8 +161,16 @@ func _physics_process(delta: float) -> void:
 			velocity.x = move_toward(velocity.x, target.x, AIR_CONTROL * delta)
 			velocity.z = move_toward(velocity.z, target.z, AIR_CONTROL * delta)
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = JUMP_VELOCITY
+	# Resolve a buffered jump: prefer a ledge mantle if one is in reach,
+	# otherwise fall through to a normal (coyote-forgiving) jump.
+	if _jump_buffer_remaining > 0.0:
+		if _try_ledge_climb():
+			_jump_buffer_remaining = 0.0
+			return
+		if _coyote_remaining > 0.0:
+			velocity.y = JUMP_VELOCITY
+			_jump_buffer_remaining = 0.0
+			_coyote_remaining = 0.0
 
 	var pre_velocity := velocity
 	var was_on_floor := is_on_floor()
@@ -137,6 +183,15 @@ func _physics_process(delta: float) -> void:
 		_constrain_to_rope()
 
 	_draw_rope()
+
+
+func _apply_gravity(delta: float) -> void:
+	if is_on_floor():
+		return
+	var g := gravity
+	if velocity.y < 0.0:
+		g *= FALL_GRAVITY_MULT
+	velocity.y -= g * delta
 
 
 func _process_impacts(pre_velocity: Vector3, was_on_floor: bool) -> void:
@@ -272,3 +327,85 @@ func _draw_rope() -> void:
 	rope_immediate.surface_add_vertex(camera.global_position - camera.global_basis.y * 0.15)
 	rope_immediate.surface_add_vertex(grapple_anchor)
 	rope_immediate.surface_end()
+
+
+func _try_ledge_climb() -> bool:
+	if grapple_attached:
+		return false
+	var forward := -global_basis.z
+	forward.y = 0.0
+	if forward.length() < 0.001:
+		return false
+	forward = forward.normalized()
+	var space := get_world_3d().direct_space_state
+
+	# 1) Wall in front at head height. A near-vertical normal filters out
+	#    ramps so we don't try to mantle a slope.
+	var head_pos := global_position + Vector3.UP * 0.7
+	var wall_query := PhysicsRayQueryParameters3D.create(
+		head_pos, head_pos + forward * LEDGE_PROBE_FORWARD, 0xFFFFFFFF, [get_rid()]
+	)
+	var wall_hit := space.intersect_ray(wall_query)
+	if wall_hit.is_empty():
+		return false
+	if absf(Vector3(wall_hit["normal"]).y) > 0.4:
+		return false
+
+	# 2) Cast down from above-and-forward; only ledges in a window straddling
+	#    head height qualify ("close enough for the player to grab").
+	var probe_xz := global_position + forward * LEDGE_PROBE_FORWARD
+	var probe_top := Vector3(probe_xz.x, global_position.y + LEDGE_PROBE_TOP, probe_xz.z)
+	var probe_bottom := Vector3(probe_xz.x, global_position.y + LEDGE_PROBE_BOTTOM, probe_xz.z)
+	var ledge_query := PhysicsRayQueryParameters3D.create(
+		probe_top, probe_bottom, 0xFFFFFFFF, [get_rid()]
+	)
+	var ledge_hit := space.intersect_ray(ledge_query)
+	if ledge_hit.is_empty():
+		return false
+	if Vector3(ledge_hit["normal"]).y < 0.7:
+		return false
+
+	# 3) Need a standing capsule's worth of headroom above the ledge or the
+	#    mantle would teleport into a low ceiling.
+	var ledge_pos: Vector3 = ledge_hit["position"]
+	var clearance_query := PhysicsRayQueryParameters3D.create(
+		ledge_pos + Vector3.UP * 0.05,
+		ledge_pos + Vector3.UP * LEDGE_CLEARANCE,
+		0xFFFFFFFF, [get_rid()]
+	)
+	if not space.intersect_ray(clearance_query).is_empty():
+		return false
+
+	_begin_ledge_climb(ledge_pos, forward)
+	return true
+
+
+func _begin_ledge_climb(ledge_pos: Vector3, forward: Vector3) -> void:
+	_climbing = true
+	input_locked = true
+	grapple_attached = false
+	velocity = Vector3.ZERO
+
+	var rise_target := global_position
+	rise_target.y = ledge_pos.y + CAPSULE_HALF_HEIGHT
+	var final_target := rise_target + forward * LEDGE_FORWARD_PUSH
+
+	var t := create_tween().set_trans(Tween.TRANS_SINE)
+	t.tween_property(self, "global_position", rise_target, LEDGE_RISE_DURATION).set_ease(Tween.EASE_OUT)
+	t.tween_property(self, "global_position", final_target, LEDGE_FORWARD_DURATION).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(_finish_ledge_climb)
+
+	# Camera "struggle": dip the pitch hard during the rise, overshoot a bit,
+	# then settle as the body steps onto the ledge. Phases sum to the full
+	# climb duration so the camera lands upright on completion.
+	var base_pitch := _pitch
+	var cam_t := create_tween().set_trans(Tween.TRANS_SINE)
+	cam_t.tween_property(camera, "rotation:x", base_pitch - 0.10, LEDGE_RISE_DURATION * 0.40)
+	cam_t.tween_property(camera, "rotation:x", base_pitch + 0.04, LEDGE_RISE_DURATION * 0.50)
+	cam_t.tween_property(camera, "rotation:x", base_pitch, LEDGE_FORWARD_DURATION + LEDGE_RISE_DURATION * 0.10)
+
+
+func _finish_ledge_climb() -> void:
+	_climbing = false
+	input_locked = false
+	velocity = Vector3.ZERO
