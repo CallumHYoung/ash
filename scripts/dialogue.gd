@@ -1,9 +1,10 @@
 extends CanvasLayer
 
 # Slow, one-sentence-at-a-time NPC ramble. Each sentence types out, then a
-# short pause before auto-advancing. Pressing "interact" while typing fast-
-# forwards the current sentence; pressing it during the pause skips to the
-# next sentence. Non-blocking — the player can still move during dialogue.
+# short pause before auto-advancing. While talking, the player is locked in
+# place with the camera tweened onto the NPC. "interact" (E) fast-forwards
+# the current sentence or advances during the pause; "dialogue_quit" (Q)
+# leaves at any time.
 
 const SENTENCES: Array[String] = [
 	"You're really going down there?",
@@ -19,14 +20,20 @@ const SENTENCES: Array[String] = [
 	"Good luck, friend.",
 ]
 
-const TYPE_SPEED: float = 22.0
-const POST_SENTENCE_PAUSE: float = 1.6
+const TYPE_SPEED: float = 12.0
+const POST_SENTENCE_PAUSE: float = 2.2
+const NPC_LOOK_OFFSET: Vector3 = Vector3(0, 1.85, 0)
 
 enum {STATE_TYPING, STATE_PAUSING}
+
+@export var player_path: NodePath
+@export var npc_path: NodePath
 
 @onready var prompt: Label = $Prompt
 @onready var box: Panel = $Box
 @onready var text_label: Label = $Box/Text
+@onready var player: Node = get_node_or_null(player_path)
+@onready var npc: Node3D = get_node_or_null(npc_path) as Node3D
 
 var _player_in_range: bool = false
 var _talking: bool = false
@@ -58,6 +65,10 @@ func _refresh_prompt() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _talking and event.is_action_pressed("dialogue_quit"):
+		_stop()
+		get_viewport().set_input_as_handled()
+		return
 	if not event.is_action_pressed("interact"):
 		return
 	if _talking:
@@ -99,6 +110,8 @@ func _start() -> void:
 	box.visible = true
 	_refresh_prompt()
 	_update_text()
+	if player and npc and player.has_method("lock_and_look_at"):
+		player.lock_and_look_at(npc.global_position + NPC_LOOK_OFFSET)
 
 
 func _advance_sentence() -> void:
@@ -116,6 +129,8 @@ func _stop() -> void:
 	box.visible = false
 	text_label.text = ""
 	_refresh_prompt()
+	if player and player.has_method("unlock_input"):
+		player.unlock_input()
 
 
 func _update_text() -> void:

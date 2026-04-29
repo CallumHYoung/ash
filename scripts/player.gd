@@ -35,6 +35,7 @@ var grapple_anchor: Vector3 = Vector3.ZERO
 var grapple_length: float = 0.0
 var health: float = MAX_HEALTH
 var checkpoint_position: Vector3 = Vector3.ZERO
+var input_locked: bool = false
 var _yaw: float = 0.0
 var _pitch: float = 0.0
 var _last_checkpoint_floor_id: int = 0
@@ -52,6 +53,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if input_locked:
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= event.relative.x * MOUSE_SENSITIVITY
 		_pitch = clamp(_pitch - event.relative.y * MOUSE_SENSITIVITY, -PI / 2.0 + 0.05, PI / 2.0 - 0.05)
@@ -59,7 +62,43 @@ func _input(event: InputEvent) -> void:
 		camera.rotation.x = _pitch
 
 
+func lock_and_look_at(target: Vector3, duration: float = 0.45) -> void:
+	# Cinematic lock: stop the player, drop any active grapple, and tween the
+	# camera onto `target`. Keep `_yaw`/`_pitch` in sync with the visible
+	# rotation so the next mouse motion after unlock doesn't snap.
+	input_locked = true
+	grapple_attached = false
+	velocity = Vector3.ZERO
+	var look_origin := camera.global_position
+	var dx: float = target.x - look_origin.x
+	var dy: float = target.y - look_origin.y
+	var dz: float = target.z - look_origin.z
+	var horiz: float = sqrt(dx * dx + dz * dz)
+	var raw_yaw: float = atan2(-dx, -dz)
+	var target_pitch: float = clamp(atan2(dy, horiz), -PI / 2.0 + 0.05, PI / 2.0 - 0.05)
+	# Take the shortest angular path to avoid spinning past PI.
+	var target_yaw: float = _yaw + wrapf(raw_yaw - _yaw, -PI, PI)
+	var t := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(self, "_yaw", target_yaw, duration)
+	t.tween_property(self, "rotation:y", target_yaw, duration)
+	t.tween_property(self, "_pitch", target_pitch, duration)
+	t.tween_property(camera, "rotation:x", target_pitch, duration)
+
+
+func unlock_input() -> void:
+	input_locked = false
+
+
 func _physics_process(delta: float) -> void:
+	if input_locked:
+		if not is_on_floor():
+			velocity.y -= gravity * delta
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		_draw_rope()
+		return
+
 	_handle_grapple_input()
 
 	if not is_on_floor():
