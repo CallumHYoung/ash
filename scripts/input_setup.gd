@@ -10,6 +10,7 @@ func _ready() -> void:
 	_add_key_action("jump", [KEY_SPACE])
 	_add_key_action("reel", [KEY_SHIFT])
 	_add_key_action("restart", [KEY_R])
+	_add_key_action("interact", [KEY_E])
 	_add_mouse_action("grapple", MOUSE_BUTTON_LEFT)
 
 

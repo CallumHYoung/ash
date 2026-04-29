@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
+radius = 0.4
+height = 1.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+radius = 0.28
+height = 0.56
+radial_segments = 24
+rings = 12
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.18, 0.16, 0.15, 1)
+roughness = 0.92
+emission_enabled = true
+emission = Color(0.45, 0.2, 0.07, 1)
+emission_energy_multiplier = 0.35
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 2.5
+
+[node name="NPC" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("CapsuleMesh_1")
+surface_material_override/0 = SubResource("StandardMaterial3D_1")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, 0)
+mesh = SubResource("SphereMesh_1")
+surface_material_override/0 = SubResource("StandardMaterial3D_1")
+
+[node name="InteractArea" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("SphereShape3D_1")
