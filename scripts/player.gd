@@ -14,6 +14,12 @@ const JUMP_VELOCITY: float = 7.5
 const AIR_CONTROL: float = 8.0
 const MOUSE_SENSITIVITY: float = 0.0022
 
+# Impacts below this speed are free; damage scales above it.
+const IMPACT_DAMAGE_THRESHOLD: float = 12.0
+const IMPACT_DAMAGE_EXPONENT: float = 1.7
+const IMPACT_DAMAGE_SCALE: float = 0.4
+const MAX_HEALTH: float = 100.0
+
 @export var grapple_max_distance: float = 80.0
 @export var grapple_reel_speed: float = 8.0
 @export var grapple_swing_force: float = 22.0
@@ -27,9 +33,12 @@ var rope_immediate := ImmediateMesh.new()
 var grapple_attached: bool = false
 var grapple_anchor: Vector3 = Vector3.ZERO
 var grapple_length: float = 0.0
+var health: float = MAX_HEALTH
+var checkpoint_position: Vector3 = Vector3.ZERO
 var _yaw: float = 0.0
 var _pitch: float = 0.0
 var _consume_next_grapple: bool = false
+var _last_checkpoint_floor_id: int = 0
 
 
 func _ready() -> void:
@@ -40,6 +49,7 @@ func _ready() -> void:
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	rope_mesh.material_override = mat
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	checkpoint_position = global_position
 
 
 func _input(event: InputEvent) -> void:
@@ -83,12 +93,88 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 
+	var pre_velocity := velocity
+	var was_on_floor := is_on_floor()
 	move_and_slide()
+
+	_process_impacts(pre_velocity, was_on_floor)
+	_update_checkpoint()
 
 	if grapple_attached:
 		_constrain_to_rope()
 
 	_draw_rope()
+
+
+func _process_impacts(pre_velocity: Vector3, was_on_floor: bool) -> void:
+	# Pick the worst impact this frame so we never double-count, and so the
+	# damage curve is driven by the most violent contact rather than several
+	# small grazes summed together.
+	var worst_speed: float = 0.0
+
+	if is_on_floor() and not was_on_floor:
+		worst_speed = absf(pre_velocity.y)
+
+	for i in get_slide_collision_count():
+		var coll := get_slide_collision(i)
+		var n := coll.get_normal()
+		# Floor handled above; only count walls/ceilings here.
+		if n.y > 0.7:
+			continue
+		var into_speed := -pre_velocity.dot(n)
+		if into_speed > worst_speed:
+			worst_speed = into_speed
+
+	var dmg := _damage_for_speed(worst_speed)
+	if dmg > 0.0:
+		take_damage(dmg)
+
+
+func _damage_for_speed(speed: float) -> float:
+	if speed <= IMPACT_DAMAGE_THRESHOLD:
+		return 0.0
+	var excess := speed - IMPACT_DAMAGE_THRESHOLD
+	return pow(excess, IMPACT_DAMAGE_EXPONENT) * IMPACT_DAMAGE_SCALE
+
+
+func take_damage(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	health = max(0.0, health - amount)
+	if health <= 0.0:
+		die()
+
+
+func die() -> void:
+	health = MAX_HEALTH
+	velocity = Vector3.ZERO
+	grapple_attached = false
+	global_position = checkpoint_position
+	# Force the next floor contact to register as a fresh checkpoint, even if
+	# we land on the same platform we respawned on.
+	_last_checkpoint_floor_id = 0
+
+
+func _update_checkpoint() -> void:
+	if not is_on_floor():
+		return
+	var floor_collider: Object = null
+	for i in get_slide_collision_count():
+		var coll := get_slide_collision(i)
+		if coll.get_normal().y > 0.7:
+			floor_collider = coll.get_collider()
+			break
+	if floor_collider == null:
+		return
+	# Only platforms count — the cavern's bottom cap and any stray ledges
+	# would otherwise become respawn traps.
+	if not (floor_collider is Node) or not (floor_collider as Node).is_in_group("checkpoint"):
+		return
+	var id := floor_collider.get_instance_id()
+	if id == _last_checkpoint_floor_id:
+		return
+	_last_checkpoint_floor_id = id
+	checkpoint_position = global_position
 
 
 func _handle_grapple_input() -> void:

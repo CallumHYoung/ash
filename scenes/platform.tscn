@@ -10,7 +10,7 @@ size = Vector3(1, 1, 1)
 albedo_color = Color(0.42, 0.34, 0.255, 1)
 roughness = 0.85
 
-[node name="Platform" type="StaticBody3D"]
+[node name="Platform" type="StaticBody3D" groups=["checkpoint"]]
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("BoxMesh_1")
