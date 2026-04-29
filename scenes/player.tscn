@@ -17,4 +17,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 fov = 80.0
 near = 0.05
 
+[node name="Flashlight" type="SpotLight3D" parent="Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, -0.1)
+light_color = Color(1, 0.94, 0.82, 1)
+light_energy = 5.0
+shadow_enabled = true
+spot_range = 75.0
+spot_attenuation = 1.4
+spot_angle = 38.0
+spot_angle_attenuation = 0.6
+
 [node name="RopeLine" type="MeshInstance3D" parent="."]
