@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://wkl62ehf58bd"
+path="res://.godot/imported/Chasm of Ash.mp3-6610bd099ed22d8868cf3ae759e273d6.mp3str"
+
+[deps]
+
+source_file="res://Chasm of Ash.mp3"
+dest_files=["res://.godot/imported/Chasm of Ash.mp3-6610bd099ed22d8868cf3ae759e273d6.mp3str"]
+
+[params]
+
+loop=true
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

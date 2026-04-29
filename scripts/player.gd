@@ -7,7 +7,7 @@ extends CharacterBody3D
 #   Left Mouse (hold) .. fire grapple toward crosshair, hold to stay attached
 #   Shift (held) ....... reel rope shorter while attached
 #   R .................. respawn at top
-#   Esc ................ release mouse cursor; click again to recapture
+#   Esc ................ open pause menu
 
 const SPEED: float = 6.5
 const JUMP_VELOCITY: float = 7.5
@@ -37,7 +37,6 @@ var health: float = MAX_HEALTH
 var checkpoint_position: Vector3 = Vector3.ZERO
 var _yaw: float = 0.0
 var _pitch: float = 0.0
-var _consume_next_grapple: bool = false
 var _last_checkpoint_floor_id: int = 0
 
 
@@ -58,11 +57,6 @@ func _input(event: InputEvent) -> void:
 		_pitch = clamp(_pitch - event.relative.y * MOUSE_SENSITIVITY, -PI / 2.0 + 0.05, PI / 2.0 - 0.05)
 		rotation.y = _yaw
 		camera.rotation.x = _pitch
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		_consume_next_grapple = true
 
 
 func _physics_process(delta: float) -> void:
@@ -179,10 +173,7 @@ func _update_checkpoint() -> void:
 
 func _handle_grapple_input() -> void:
 	if Input.is_action_just_pressed("grapple"):
-		if _consume_next_grapple:
-			_consume_next_grapple = false
-		else:
-			_try_fire_grapple()
+		_try_fire_grapple()
 	if Input.is_action_just_released("grapple"):
 		grapple_attached = false
 
