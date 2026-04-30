@@ -13,7 +13,7 @@ const WALL_TEXTURE: Texture2D = preload("res://str_stonerubble.bmp")
 @export var top_y: float = 10.0: set = _set_top_y
 @export var height: float = 320.0: set = _set_height
 @export var base_radius: float = 110.0: set = _set_base_radius
-@export var rings: int = 200: set = _set_rings
+@export var rings: int = 500: set = _set_rings
 @export var radial_segments: int = 64: set = _set_radial_segments
 @export_range(0.0, 10.0, 0.1) var displacement: float = 4.0: set = _set_displacement
 @export var noise_frequency: float = 0.06: set = _set_noise_frequency
@@ -22,6 +22,23 @@ const WALL_TEXTURE: Texture2D = preload("res://str_stonerubble.bmp")
 @export var bulge_frequency: float = 3.0: set = _set_bulge_frequency
 @export_range(0.5, 4.0, 0.1) var noise_vertical_stretch: float = 1.6: set = _set_noise_vertical_stretch
 @export var open_top: bool = true: set = _set_open_top
+
+@export_group("Profile")
+# Chambers are ellipsoidal bulges layered on top of the tube. With aspect=1.0
+# the bulge is a perfect sphere; aspect>1 stretches it tall (vertical pillar
+# rooms), aspect<1 squashes it (low-ceiling wide caverns where you can pack
+# in jagged rocks). Sized as "extra above base_radius" so a chamber always
+# pokes outside the tube. Stratified along height from `noise_seed`.
+@export_range(0, 40) var chamber_count: int = 12: set = _set_chamber_count
+@export var chamber_extra_radius_min: float = 20.0: set = _set_chamber_extra_min
+@export var chamber_extra_radius_max: float = 130.0: set = _set_chamber_extra_max
+@export_range(0.3, 3.0, 0.05) var chamber_aspect_min: float = 0.55: set = _set_chamber_aspect_min
+@export_range(0.3, 3.0, 0.05) var chamber_aspect_max: float = 1.8: set = _set_chamber_aspect_max
+# Chokepoints pinch the tube radius down via a smooth bell, creating tight
+# squeeze sections between chambers.
+@export_range(0, 40) var chokepoint_count: int = 8: set = _set_chokepoint_count
+@export_range(0.0, 0.95, 0.01) var chokepoint_strength: float = 0.55: set = _set_chokepoint_strength
+@export var chokepoint_half_height: float = 16.0: set = _set_chokepoint_half_height
 
 @export_group("Torches")
 @export_range(0, 40) var torch_count: int = 12: set = _set_torch_count
@@ -37,6 +54,11 @@ var _mesh_instance: MeshInstance3D = null
 var _collision: CollisionShape3D = null
 var _material: StandardMaterial3D = null
 var _build_queued: bool = false
+
+const _FEATURE_CHAMBER: int = 0
+const _FEATURE_CHOKE: int = 1
+# Each entry: { kind, y_center, r_horiz, r_vert, strength }
+var _features: Array = []
 
 
 func _ready() -> void:
@@ -83,6 +105,8 @@ func _build() -> void:
 	var bottom_y: float = top_y - height
 	var inv_stretch: float = 1.0 / max(0.1, noise_vertical_stretch)
 
+	_generate_features()
+
 	# Build vertex grid
 	var positions := PackedVector3Array()
 	positions.resize((ring_count + 1) * seg + 2)
@@ -91,6 +115,7 @@ func _build() -> void:
 		var t: float = float(r) / float(ring_count)
 		var y: float = top_y - t * height
 		var bulge: float = sin(t * PI * bulge_frequency) * bulge_amplitude
+		var profile_r: float = _profile_radius_at(y)
 		for s in range(seg):
 			var theta: float = float(s) / float(seg) * TAU
 			var dx: float = cos(theta)
@@ -98,7 +123,7 @@ func _build() -> void:
 			# Sample 3D noise on the unit cylinder so the seam wraps seamlessly.
 			var sample := Vector3(dx, y * inv_stretch, dz)
 			var n_val: float = noise.get_noise_3dv(sample)
-			var radius: float = base_radius + bulge + n_val * displacement
+			var radius: float = profile_r + bulge + n_val * displacement
 			positions[r * seg + s] = Vector3(dx * radius, y, dz * radius)
 
 	var top_center_idx: int = (ring_count + 1) * seg
@@ -167,7 +192,89 @@ func _sample_wall_radius(noise: FastNoiseLite, t: float, theta: float) -> float:
 	var y: float = top_y - t * height
 	var bulge: float = sin(t * PI * bulge_frequency) * bulge_amplitude
 	var n_val: float = noise.get_noise_3dv(Vector3(cos(theta), y * inv_stretch, sin(theta)))
-	return base_radius + bulge + n_val * displacement
+	return _profile_radius_at(y) + bulge + n_val * displacement
+
+
+# Stratified deterministic placement of chambers and chokepoints along height.
+# Each chamber owns a vertical slot and randomizes within it, so features stay
+# evenly distributed even as counts change. Chokes use the same scheme but
+# offset by half a slot so they tend to fall between chambers, giving the
+# descent a chamber→squeeze→chamber rhythm.
+func _generate_features() -> void:
+	_features.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = noise_seed * 7919 + 1
+
+	var t_lo: float = 0.03
+	var t_hi: float = 0.97
+	var usable: float = t_hi - t_lo
+	var bottom_y: float = top_y - height
+
+	if chamber_count > 0:
+		for i in range(chamber_count):
+			var slot_lo: float = t_lo + usable * float(i) / float(chamber_count)
+			var slot_hi: float = t_lo + usable * float(i + 1) / float(chamber_count)
+			var t_c: float = lerp(slot_lo, slot_hi, rng.randf_range(0.15, 0.85))
+			var y_c: float = top_y - t_c * height
+			var extra: float = rng.randf_range(chamber_extra_radius_min, chamber_extra_radius_max)
+			var r_h: float = base_radius + max(0.0, extra)
+			var aspect: float = rng.randf_range(chamber_aspect_min, chamber_aspect_max)
+			var r_v: float = r_h * aspect
+			# Keep the chamber inside the chasm vertically so it doesn't break the caps.
+			var max_v: float = min(y_c - bottom_y, top_y - y_c) - 4.0
+			r_v = clamp(r_v, 8.0, max(8.0, max_v))
+			_features.append({
+				"kind": _FEATURE_CHAMBER, "y_center": y_c,
+				"r_horiz": r_h, "r_vert": r_v, "strength": 0.0,
+			})
+
+	if chokepoint_count > 0:
+		for i in range(chokepoint_count):
+			# Half-slot offset so chokes sit between chambers rather than on top of them.
+			var slot_lo: float = t_lo + usable * (float(i) + 0.5) / float(chokepoint_count)
+			var slot_hi: float = t_lo + usable * (float(i) + 1.5) / float(chokepoint_count)
+			slot_lo = min(slot_lo, t_hi)
+			slot_hi = min(slot_hi, t_hi)
+			var t_c: float = lerp(slot_lo, slot_hi, rng.randf_range(0.2, 0.8))
+			var y_c: float = top_y - t_c * height
+			var r_v: float = chokepoint_half_height * rng.randf_range(0.7, 1.4)
+			var s: float = chokepoint_strength * rng.randf_range(0.75, 1.0)
+			var max_v: float = min(y_c - bottom_y, top_y - y_c) - 2.0
+			r_v = clamp(r_v, 2.0, max(2.0, max_v))
+			_features.append({
+				"kind": _FEATURE_CHOKE, "y_center": y_c,
+				"r_horiz": 0.0, "r_vert": r_v, "strength": clamp(s, 0.0, 0.95),
+			})
+
+
+# Returns the profile-driven wall radius at world-y, before noise displacement.
+# Chambers contribute via max(): each ellipsoid gives r(y) = R_h * sqrt(1-(dy/R_v)^2)
+# inside its vertical extent, and the largest one wins. Chokepoints multiply
+# the result by a smooth pinch bell. Outside any feature the profile is just
+# the base radius, so the rim and far-from-feature regions match the original tube.
+func _profile_radius_at(y: float) -> float:
+	var r: float = base_radius
+	var chamber_r: float = 0.0
+	for f in _features:
+		if f["kind"] == _FEATURE_CHAMBER:
+			var dy: float = y - f["y_center"]
+			var rv: float = f["r_vert"]
+			if absf(dy) < rv:
+				var k: float = dy / rv
+				var local: float = f["r_horiz"] * sqrt(max(0.0, 1.0 - k * k))
+				if local > chamber_r:
+					chamber_r = local
+	if chamber_r > r:
+		r = chamber_r
+	for f in _features:
+		if f["kind"] == _FEATURE_CHOKE:
+			var dy: float = y - f["y_center"]
+			var rv: float = f["r_vert"]
+			if absf(dy) < rv:
+				var bell: float = cos(dy / rv * (PI * 0.5))
+				bell *= bell
+				r *= 1.0 - f["strength"] * bell
+	return r
 
 
 func _build_torches(noise: FastNoiseLite) -> void:
@@ -241,6 +348,14 @@ func _set_torch_color(v: Color) -> void: torch_color = v; _queue_rebuild()
 func _set_torch_energy(v: float) -> void: torch_energy = v; _queue_rebuild()
 func _set_torch_range(v: float) -> void: torch_range = v; _queue_rebuild()
 func _set_torch_inset(v: float) -> void: torch_inset = v; _queue_rebuild()
+func _set_chamber_count(v: int) -> void: chamber_count = v; _queue_rebuild()
+func _set_chamber_extra_min(v: float) -> void: chamber_extra_radius_min = v; _queue_rebuild()
+func _set_chamber_extra_max(v: float) -> void: chamber_extra_radius_max = v; _queue_rebuild()
+func _set_chamber_aspect_min(v: float) -> void: chamber_aspect_min = v; _queue_rebuild()
+func _set_chamber_aspect_max(v: float) -> void: chamber_aspect_max = v; _queue_rebuild()
+func _set_chokepoint_count(v: int) -> void: chokepoint_count = v; _queue_rebuild()
+func _set_chokepoint_strength(v: float) -> void: chokepoint_strength = v; _queue_rebuild()
+func _set_chokepoint_half_height(v: float) -> void: chokepoint_half_height = v; _queue_rebuild()
 func _set_rebuild_now(_v: bool) -> void:
 	rebuild_now = false
 	if is_inside_tree():
